@@ -1,0 +1,186 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#pragma warning(disable : 4996)
+
+
+int main() {
+    FILE* file;
+    char buff[211];
+    double total[5][7] = { 0 }; 
+    int count[5][7] = { 0 };
+    double provTOT[5] = { 0 }; 
+    int provCOUNT[5] = { 0 };
+    char* prov[5] = { "\"Canada (excluding territories)\"", "\"Quebec\"", "\"Ontario\"", "\"Alberta\"", "\"British Columbia\"" };
+    double ageTOT[5][3] = { 0 }; 
+    int ageCOUNT[5][3] = { 0 };
+    double ageTOT2[3] = { 0 }; 
+    int ageCOUNT2[3] = { 0 }; 
+    char* ages[3] = { "\"35 to 49 years\"", "\"50 to 64 years\"", "\"65 years and over\"" };
+
+
+    file = fopen("C:Data.csv", "r");
+    
+    fgets(buff, 211, file); 
+
+    while (fgets(buff, 211, file)) {
+        char* ref_date = strtok(buff, ",");
+        char* geo = strtok(NULL, ",");
+        char* dguid = strtok(NULL, ",");
+        char* age_group = strtok(NULL, ",");
+        char* sex = strtok(NULL, ",");
+        char* indicators = strtok(NULL, ",");
+        char* characteristics = strtok(NULL, ",");
+        char* uom = strtok(NULL, ",");
+        char* uom_id = strtok(NULL, ",");
+        char* scalar_factor = strtok(NULL, ",");
+        char* scalar_id = strtok(NULL, ",");
+        char* vector = strtok(NULL, ",");
+        char* coordinate = strtok(NULL, ",");
+        char* value_str = strtok(NULL, ",");
+        char* status = strtok(NULL, ",");
+        char* symbol = strtok(NULL, ",");
+        char* terminated = strtok(NULL, ",");
+        char* decimals = strtok(NULL, ",");
+        
+
+        int year = atoi(ref_date + 1); 
+        if (year >= 2015 && year <= 2021) { 
+            for (int i = 0; i < 5; i++) {
+                if (strcmp(geo, prov[i]) == 0) {
+                    char* value_str_no_quotes = strchr(value_str, '\"') + 1;
+                    double value = atof(value_str_no_quotes);
+                    total[i][year - 2015] += value; 
+                    count[i][year - 2015]++; 
+                    provTOT[i] += value; 
+                    provCOUNT[i]++; 
+                }
+            }
+        }
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 3; j++) { 
+                for (int k = 0; k < 7; k++) { 
+                    if (count[i][k] > 0 && strcmp(age_group, ages[j]) == 0) {
+                        ageTOT[i][j] += total[i][k]; 
+                        ageCOUNT[i][j]++; 
+                        ageTOT2[j] += total[i][k];
+                        ageCOUNT2[j]++;
+                    }
+                }
+                double avg = (ageCOUNT[i][j] == 0) ? 0 : ageTOT[i][j] / ageCOUNT[i][j];
+               
+               
+            }
+           
+            
+        }
+    }
+
+    fclose(file);
+
+   //Question 1
+    printf("Provincial Average Across All Years:\n");
+    for (int i = 0; i < 5; i++) {
+        double avg = (provCOUNT[i] == 0) ? 0 : provTOT[i] / provCOUNT[i];
+        printf("%s:%.2f%%\n", prov[i], avg);
+    }
+    
+    printf("\n");
+
+    
+   
+    double mavg = 0;
+    double minavg = 100;
+    int mtemp = -1;
+    int mintemp = -1;
+
+    for (int i = 0; i < 5; i++) {
+        printf("Province: %s\n", prov[i]);
+        double provTOT = 0;
+        int provincial_count = 0;
+        for (int j = 0; j < 7; j++) { 
+            double avg = (count[i][j] == 0) ? 0 : total[i][j] / count[i][j]; 
+            printf("Year:%d\tAverage value:%.2f%%\n", j + 2015, avg);
+            provTOT += total[i][j];
+            provincial_count += count[i][j];
+        }
+       
+        double provincial_avg = (provincial_count == 0) ? 0 : provTOT / provincial_count;
+        printf("All years: %.2f%%\n", provincial_avg);
+        if (provincial_avg > mavg) {
+            mavg = provincial_avg;
+            mtemp = i;
+        }
+        if (provincial_avg < minavg) {
+            minavg = provincial_avg;
+            mintemp = i;
+        }
+        printf("-------------------------------------------------\n");
+        printf("\n");
+
+    }
+
+    printf("Age group averages:\n");
+    for (int i = 0; i < 3; i++) {
+        double avg = (ageCOUNT2[i] == 0) ? 0 : ageTOT2[i] / ageCOUNT2[i];
+        printf("Age:%s\tAverage:%.2f%%\n", ages[i], avg);
+    }
+    printf("\n");
+    //Question 2 and 4
+    double maxPercentage = 0, minPercentage = 100;
+    int maxProvinceIndex = -1, minProvinceIndex = -1, maxYear = -1, minYear = -1;
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 7; j++) {
+            double percentage = (count[i][j] == 0) ? 0 : total[i][j] / count[i][j];
+            if (percentage > maxPercentage) {
+                maxPercentage = percentage;
+                maxProvinceIndex = i;
+                maxYear = j + 2015;
+            }
+            if (percentage < minPercentage) {
+                minPercentage = percentage;
+                minProvinceIndex = i;
+                minYear = j + 2015;
+            }
+        }
+    }
+
+    printf("Highest percentage of diabetes:%s, %d, %.2f%%\n", prov[maxProvinceIndex], maxYear, maxPercentage);
+    printf("Lowest percentage of diabetes:%s, %d, %.2f%%\n", prov[minProvinceIndex], minYear, minPercentage);
+
+    double national_avg_total = 0;
+    int national_avg_count = 0;
+
+    
+    for (int i = 0; i < 5; i++) {
+        if (strcmp(prov[i], "\"Canada (excluding territories)\"") == 0) {
+            national_avg_total += provTOT[i];
+            national_avg_count += provCOUNT[i];
+        }
+    }
+
+    double national_avg = (national_avg_count == 0) ? 0 : national_avg_total / national_avg_count;
+    //Question 3
+    printf("\nProvinces above national average:\n");
+    for (int i = 0; i < 5; i++) {
+        if (strcmp(prov[i], "\"Canada (excluding territories)\"") != 0) {
+            double avg = (provCOUNT[i] == 0) ? 0 : provTOT[i] / provCOUNT[i];
+            if (avg > national_avg) {
+                printf("%s\n", prov[i]);
+            }
+        }
+    }
+
+    printf("\nProvinces below national average:\n");
+    for (int i = 0; i < 5; i++) {
+        if (strcmp(prov[i], "\"Canada (excluding territories)\"") != 0) {
+            double avg = (provCOUNT[i] == 0) ? 0 : provTOT[i] / provCOUNT[i];
+            if (avg < national_avg) {
+                printf("%s\n", prov[i]);
+            }
+        }
+    }
+
+
+    return 0;
+}
